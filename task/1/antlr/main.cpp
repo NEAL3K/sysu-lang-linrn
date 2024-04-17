@@ -1,7 +1,9 @@
 #include "SYsULexer.h" // 确保这里的头文件名与您生成的词法分析器匹配
 #include <fstream>
 #include <iostream>
+#include <regex>
 #include <unordered_map>
+using namespace std;
 
 // 映射定义，将ANTLR的tokenTypeName映射到clang的格式
 std::unordered_map<std::string, std::string> tokenTypeMapping = {
@@ -19,10 +21,35 @@ std::unordered_map<std::string, std::string> tokenTypeMapping = {
   { "EOF", "eof" },
   { "Equal", "equal" },
   { "Plus", "plus" },
+  { "Minus", "minus" },
   { "Comma", "comma" },
+  { "Void", "void" },
+  { "If", "if" },
+  { "Else", "else" },
+  { "Equalequal", "equalequal" },
+  { "Ampamp", "ampamp" },
+  { "Pipepipe", "pipepipe" },
+  { "Const", "const" },
+  { "Star", "star" },
+  { "Slash", "slash" },
+  { "Percent", "percent" },
+  { "Greater", "greater" },
+  { "Less", "less" },
+  { "While", "while" },
+  { "Break", "break" },
+  { "Continue", "continue" },
+  { "Lessequal", "lessequal" },
+  { "Greaterequal", "greaterequal" },
+  { "Exclaimequal", "exclaimequal" },
+  { "Exclaim", "exclaim" },
 
   // 在这里继续添加其他映射
 };
+
+std::string location = "";
+std::string Line = "1";
+bool startOfLine = false;
+bool leadingSpace = false;
 
 void
 print_token(const antlr4::Token* token,
@@ -41,20 +68,59 @@ print_token(const antlr4::Token* token,
   if (tokenTypeMapping.find(tokenTypeName) != tokenTypeMapping.end()) {
     tokenTypeName = tokenTypeMapping[tokenTypeName];
   }
-  std::string locInfo = " Loc=<0:0>";
 
-  bool startOfLine = false;
-  bool leadingSpace = false;
+  if (tokenTypeName == "LineAfterPreprocessing") {
+    std::string text = token->getText(); // 获取词法符号的文本
+
+    std::regex rgx("#\\s*(\\d+)\\s*\"([^\"]+)\"[\\s\\d]*");
+    std::smatch match;
+    if (std::regex_search(text, match, rgx) && match.size() == 3) {
+      Line = match[1].str();
+      location = match[2].str();
+      // std::cout << Line << location << endl;
+      // 因为最后一行预编译行会让Line++，所以先减去一行
+      int tempLine = std::stoi(Line);
+      tempLine--;
+      Line = std::to_string(tempLine);
+    }
+    return;
+  }
+
+  if (tokenTypeName == "Newline") {
+    int tempLine = std::stoi(Line);
+    tempLine++;
+    Line = std::to_string(tempLine);
+    startOfLine = true;
+    return;
+  }
+
+  if (tokenTypeName == "Whitespace") {
+    leadingSpace = true;
+    return;
+  }
+
+  std::string CharPositionInLine =
+    std::to_string(token->getCharPositionInLine() + 1);
+  std::cout << Line << location << endl;
+  std::string locInfo =
+    "\tLoc=<" + location + ":" + Line + ":" + CharPositionInLine + ">";
 
   if (token->getText() != "<EOF>")
-    outFile << tokenTypeName << " '" << token->getText() << "'";
-  else
+    outFile << tokenTypeName << " '" << token->getText() << "'\t";
+  else{
     outFile << tokenTypeName << " '"
             << "'";
-  if (startOfLine)
-    outFile << "\t [StartOfLine]";
-  if (leadingSpace)
+    return;
+  }
+  if (startOfLine) {
+    outFile << " [StartOfLine]";
+    startOfLine = false;
+  }
+  if (leadingSpace) {
     outFile << " [LeadingSpace]";
+    leadingSpace = false;
+  }
+
   outFile << locInfo << std::endl;
 }
 

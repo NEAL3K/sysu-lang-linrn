@@ -26,8 +26,28 @@ static const std::unordered_map<std::string, size_t> kClangTokens{
   { "minus", kMinus },
   { "comma", kComma },
   { "l_square", kLeftBracket },
-  { "r_square", kRightBracket }
+  { "r_square", kRightBracket },
+  { "void", kVoid },
+  { "if", kIf },
+  { "else", kElse },
+  { "equal_equal", kEqualequal },
+  { "pipe_pipe", kPipepipe },
+  { "amp_amp", kAmpamp },
+  { "const", kConst },
+  { "star", kStar },
+  { "slash", kSlash },
+  { "percent", kPercent },
+  { "greater", kGreater },
+  { "less", kLess },
+  { "while", kWhile },
+  { "break", kBreak },
+  { "continue", kContinue },
+  { "less_equal", kLessequal },
+  { "greater_equal", kGreaterequal },
+  { "exclaim_equal", kExclaimequal },
+  { "exclaim", kExclaim }
 };
+
 
 } // namespace
 
@@ -62,11 +82,14 @@ SYsULexer::nextToken()
         mInput->consume();
       break;
     }
+    // 把字符c添加到Line中
     line.push_back(c);
     c = mInput->LA(1);
+    // eof是看成另外一行，所以这里的遇到eof就退出循环
     if (c == antlr4::Token::EOF)
       return common_token(antlr4::Token::INVALID_TYPE, start, mInput->index());
   }
+  // start和stop是行的起止位置
   auto stop = mInput->index();
 
   std::size_t typeEnd, type;
@@ -77,11 +100,15 @@ SYsULexer::nextToken()
   {
     decltype(kClangTokens)::const_iterator typeIter;
     typeEnd = line.find(' ');
+    // 没有空格，说明是无效行
     if (typeEnd == std::string::npos)
       goto FAIL;
+    // 使用 line.substr(0, typeEnd) 获取从行开始到第一个空格之间的子字符串，是词法单元的类型。
+    // 然后在 kClangTokens 映射中查找这个类型字符串，将结果迭代器存储在 typeIter 中。
     typeIter = kClangTokens.find(line.substr(0, typeEnd));
     if (typeIter == kClangTokens.end())
       goto FAIL;
+    // 如果类型存在于映射中，使用 typeIter->second 获取与类型字符串对应的数值，并将其存储在 type 变量中。
     type = typeIter->second;
   }
 

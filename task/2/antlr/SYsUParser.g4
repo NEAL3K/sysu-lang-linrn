@@ -24,9 +24,17 @@ unaryOperator
     :   Plus | Minus
     ;
 
-additiveExpression
-    :   unaryExpression ((Plus|Minus) unaryExpression)*
+multiplicativeExpression
+    :   unaryExpression ((Star|Slash|Percent) unaryExpression)*
     ;
+
+additiveExpression
+    :   multiplicativeExpression ((Plus|Minus) multiplicativeExpression)*
+    ;
+
+// additiveExpression
+//     :   unaryExpression ((Plus|Minus) unaryExpression)*
+//     ;
 
 
 assignmentExpression
